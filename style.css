@@ -1,0 +1,135 @@
+.h--16{
+    height: calc(100vh - 4rem);
+}
+.CodeMirror {
+    height: 100%;
+    font-size: 24px;
+    top: 0px;
+    background-color: rgb(221, 213, 207);
+    /* margin-top: 11px; */
+}
+.CodeMirror-hscrollbar{
+    /* opacity: 0; */
+    display: none;
+}
+.CodeMirror *{
+    font-family: 'Fira Code', monospace;
+}
+.CodeMirror-code{
+    padding-bottom: 100px;
+    font-family: monospace !important;
+}
+.CodeMirror-gutters{
+    /* width: 38px; */
+    /* background-color: rgb(199, 187, 177); */
+    background-color: rgb(221, 213, 207);
+}
+.headFont{
+    font-family: 'Fira Code', sans-serif;
+    font-weight: 800;
+}
+.mono{
+    font-family: 'Fira Code', sans-serif;
+}
+*{
+    font-family: 'Roboto', sans-serif;
+}
+
+.bg-back{
+    background-color: rgb(207, 199, 193);
+}
+.bg-back2{
+    background-color: rgb(238, 230, 224);
+}
+.bg-console{
+    background-color: rgb(199, 188, 181);
+}
+.hover-bg-back2:hover{
+    background-color: rgb(238, 230, 224);
+}
+
+.inp{
+    padding-left: 12px;
+    background-color: rgb(221, 213, 207);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.backFlip {
+display: flex;
+align-items: center;
+justify-items:  center;
+}
+
+
+.backFlip:hover > span {
+animation: letterroll cubic-bezier(.4,0,.2,1) 0.5s;
+}
+
+.backFlip > span {
+text-align: center;
+animation: backroll cubic-bezier(.4,0,.2,1) 0.5s;
+}
+
+
+
+@keyframes letterroll {
+50% {
+transform: translateY(-75%);
+opacity: 0;
+}
+50.1% {
+transform: translateY(75%);
+}
+100% {
+transform: translateY(0%);
+opacity: 1;
+}
+}
+
+@keyframes backroll {
+50% {
+transform: translateY(75%);
+}
+50.1% {
+transform:translateY(-75%);
+opacity: 0;
+}
+100% {
+transform: translateY(0%);
+opacity: 1;
+}
+}
+
+
+@keyframes slideUp {
+0% {
+transform: translateY(0%);
+}
+100% {
+    transform: translateY(-100%);
+    display: none;
+}
+}
+
+.slideUp{
+    animation: slideUp 0.5s forwards;
+}
+@keyframes slideDown {
+0% {
+transform: translateY(0%);
+}
+100% {
+transform: translateY(100%);
+display: none;
+}
+}
+
+.slideDown{
+    animation: slideDown 0.5s forwards;
+}
+
+
+#butn {
+visibility: hidden;
+}
