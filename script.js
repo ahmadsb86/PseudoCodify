@@ -244,42 +244,44 @@ function $OUTPUT$(...args) {
   }
   consoleElm.innerHTML += "</br>";
 }
-function $INPUT$(dataType, callback) {
-  var input = document.createElement("input");
-  // Set attributes for the input element
-  input.placeholder = "Input some text";
-  input.classList = "inp";
-  input.autofocus = true;
+function $INPUT$(dataType) {
+  return new Promise((res, rej) => {
+    var input = document.createElement("input");
+    // Set attributes for the input element
+    input.placeholder = "Input some text";
+    input.classList = "inp";
+    input.autofocus = true;
 
-  if (dataType == "integer") {
-    input.type = "number";
-    input.placeholder = "Input an integer";
-  }
-  if (dataType == "real") {
-    input.type = "number";
-    input.placeholder = "Input a real number";
-  }
-  if (dataType == "char") {
-    input.placeholder = "Input a character";
-  }
+    if (dataType == "integer") {
+      input.type = "number";
+      input.placeholder = "Input an integer";
+    }
+    if (dataType == "real") {
+      input.type = "number";
+      input.placeholder = "Input a real number";
+    }
+    if (dataType == "char") {
+      input.placeholder = "Input a character";
+    }
 
-  // Attach an event listener (e.g., on input change)
-  input.addEventListener("keydown", function (event) {
-    if (event.key === "Enter") {
-      input.readOnly = true;
-      input.placeholder = event.target.value;
-      if (debug)
-        console.log("Enter key pressed. Input value: " + event.target.value);
+    // Attach an event listener (e.g., on input change)
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        input.readOnly = true;
+        input.placeholder = event.target.value;
+        if (debug)
+          console.log("Enter key pressed. Input value: " + event.target.value);
 
-      if (dataType == "integer") callback(parseInt(event.target.value));
-      else if (dataType == "real") callback(parseFloat(event.target.value));
-      else if (dataType == "char") callback(event.target.value[0]);
-      else callback(event.target.value);
-    } else if (dataType == "char" && event.target.value.length > 0 && event.key != "Backspace") event.preventDefault();
+        if (dataType == "integer") res(parseInt(event.target.value));
+        else if (dataType == "real") res(parseFloat(event.target.value));
+        else if (dataType == "char") res(event.target.value[0]);
+        else res(event.target.value);
+      } else if (dataType == "char" && event.target.value.length > 0 && event.key != "Backspace") event.preventDefault();
+    });
+
+    // Append the input to the container
+    consoleElm.appendChild(input);
   });
-
-  // Append the input to the container
-  consoleElm.appendChild(input);
 }
 
 function onExecute() {
@@ -301,7 +303,6 @@ function onExecute() {
     case: [0, 0],
     for: [0, 0],
   };
-  var callbackOpens = 0;
   var variableNames = [];
   var codeArray = codeEditor.getValue().split("\n");
   output = boiler;
@@ -367,16 +368,21 @@ function onExecute() {
             `Bad Syntax for INPUT statement. You probably forgot to mention the variable to pass the input into`,
             lineNum
           );
-        else if (!variableNames.includes(tok[1]))
-          err(
-            `Bad Syntax for INPUT statement. Variable name doesn't exist or variable is immutable/constant.`,
-            lineNum
-          );
         else {
-          app(
-            `$INPUT$(dts.${tok[1]},($INPUT_VALUE$)=>{\n${tok[1]} = $INPUT_VALUE$`
-          );
-          callbackOpens++;
+          let inputVars = line.substring(5).split(",");
+          console.log("INPS");
+          console.log(inputVars);
+          for (let i = 0; i < inputVars.length; i++) {
+            let inputVar = inputVars[i].trim();
+            if (!variableNames.includes(inputVar))
+              err(
+                `Bad Syntax for INPUT statement. Variable name doesn't exist or variable is immutable/constant.`,
+                lineNum
+              );
+            else {
+              app(`${inputVar} = await $INPUT$(dts.${inputVar})`);
+            }
+          }
         }
         break;
 
@@ -461,10 +467,6 @@ function onExecute() {
         curlyBraceCounter.for[1]++;
         break;
 
-      case "input":
-        app(`${words[1]} = INPUT()`);
-        break;
-
       default:
         if (variableNames.includes(tok[0])) {
           if (tok[1] == "=") app(`${tok[0]} = ${line.split("=")[1]}`);
@@ -479,29 +481,48 @@ function onExecute() {
     }
   }
 
+  //transpile all lines
   for (let [lineNum, lineContent] of codeArray.entries()) {
     if (errorState) {
       break;
     }
     transpile(lineNum, lineContent);
   }
-  for (let i = 0; i < callbackOpens; i++) app("})");
 
-  // output = output.replace(/"/g, '/"');
+  //add some more boilerplate
+  output = "let $MAIN$ = async ()=>{\n" + output + "\n}\n $MAIN$()";
+
   if (debug) console.log(output);
 
   if (!errorState) {
+    //if no parsing error
     if (debug) console.log("LOOKS GOOD TO ME 👍");
-    try {
-      var executer = new Function(output);
-    } catch (e) {
-      if (debug) {
-        console.error("dbas couldn't create new Function() with negus ");
-        console.error(e);
-        consoleElm.innerHTML = `<span class='text-red-700 mono'>  <b>Uncaught compile-time error: </b></br> ${e}</span>`;
+
+    //Compile-time validation
+    for (const [key, value] of Object.entries(curlyBraceCounter)) {
+      if (value[0] != value[1]) {
+        consoleElm.innerHTML = `<span class='text-red-700 mono'>  <b>Compile-time error: </b></br> Unpaired curly bracket. You most likely forgot to close a code block (e.g. by writing ENDIF or ENDWHILE) or forgot to properly create a code block (e.g. by writing THEN after IF or writing DO after WHILE)</span>`;
+        executer = () => {};
+        errorState = true;
       }
-      executer = () => {};
+      console.log(`${key}: ${value}`);
     }
+
+    if (!errorState) {
+      //if no compiler-time error
+      try {
+        var executer = new Function(output);
+      } catch (e) {
+        if (debug) {
+          console.error("dbas couldn't create new Function() with negus ");
+          console.error(e);
+        }
+        consoleElm.innerHTML = `<span class='text-red-700 mono'>  <b>Uncaught compile-time error: </b></br> ${e}</span>`;
+        executer = () => {};
+      }
+    }
+
+    //EXECUTE CODE
     if (debug)
       console.log(
         "%c\n---------------------------------------------\n-----------------  EXECUTE  -----------------\n---------------------------------------------\n",
